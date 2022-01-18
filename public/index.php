@@ -103,10 +103,6 @@ $SRC = getFullPath(getBaseImagePath($VIRTUAL));
 if (!file_exists($SRC))
 {
     http_response_code(404);
-    print_r(array(
-        parsePath(removeArgs(filter_input(INPUT_SERVER, 'REQUEST_URI'))),
-        parsePath(removeArgs(filter_input(INPUT_SERVER, 'SCRIPT_NAME')))
-    ));
     die();
 }
 
