@@ -1,5 +1,7 @@
 <?php
 
+ob_start();
+
 function removeArgs(string $path): string
 {
     $elements = explode('?', $path, 2);
@@ -9,7 +11,7 @@ function removeArgs(string $path): string
 function parsePath(string $path): string
 {
     $elements = array();
-    foreach (explode('/', str_replace("\\", '/', $path)) as $element)
+    foreach (explode(DIRECTORY_SEPARATOR, str_replace("\\", DIRECTORY_SEPARATOR, str_replace('/', DIRECTORY_SEPARATOR, $path))) as $element)
     {
         if (empty($element))
             continue;
@@ -23,27 +25,7 @@ function parsePath(string $path): string
         $elements[] = $element;
     }
 
-    return implode('/', $elements);
-}
-
-function getVirtualPath(string $uri, string $script): string
-{
-    $elementsURI = explode('/', $uri);
-    $elementsSCRIPT = explode('/', $script);
-
-    while (count($elementsSCRIPT) > 0 && count($elementsURI) > 0)
-    {
-        $elementSCRIPT = array_shift($elementsSCRIPT);
-        if ($elementsURI[0] == $elementSCRIPT)
-        {
-            array_shift($elementsURI);
-        }
-        else
-            break;
-    }
-
-
-    return implode('/', $elementsURI);
+    return implode(DIRECTORY_SEPARATOR, $elements);
 }
 
 function getBaseImagePath(string $path): string
@@ -51,7 +33,7 @@ function getBaseImagePath(string $path): string
     $name = explode('-', pathinfo($path, PATHINFO_FILENAME), 2);
 
     return parsePath(
-            pathinfo($path, PATHINFO_DIRNAME) . '/' .
+            pathinfo($path, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR .
             $name[0] . '.' .
             pathinfo($path, PATHINFO_EXTENSION)
     );
@@ -75,30 +57,37 @@ function getImageSizeFromName(string $path): array
     );
 }
 
-function getFullPath(string $path): string
+function sendImage(string $path): void
 {
-    return __DIR__ . '/' . $path;
+    ob_clean();
+    header('Content-Size: ' . filesize($path));
+    header('Content-Type: image');
+    readfile($path);
+    exit();
 }
 
-function scaleImage(string $src, int $width, int $height): string
+function sendImagick(\Imagick $image): void
 {
-    $dst = pathinfo($src, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR . pathinfo($src, PATHINFO_FILENAME) . '-' . $width . 'x' . $height . '.' . pathinfo($src, PATHINFO_EXTENSION);
-
-    $image = new \Imagick($src);
-    $image->scaleImage($width, $height);
-    $image->writeImage($dst);
-    $image->clear();
-
-    return $dst;
+    ob_clean();
+    header('Content-Size: ' . $image->getImageLength());
+    header('Content-Type: image/' . $image->getImageFormat());
+    echo $image;
 }
 
-$VIRTUAL = getVirtualPath(
-        parsePath(removeArgs(realpath(parsePath(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'))) . '/' . filter_input(INPUT_SERVER, 'REQUEST_URI'))),
-        realpath(parsePath(__FILE__))
-);
+$SITE_ROOT = realpath(parsePath(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT')));
+//error_log($SITE_ROOT);
 
-$SRC = getFullPath(getBaseImagePath($VIRTUAL));
+$REQUEST_PATH = parsePath(removeArgs(filter_input(INPUT_SERVER, 'REQUEST_URI')));
+//error_log($REQUEST_PATH);
 
+$DST = parsePath($SITE_ROOT . DIRECTORY_SEPARATOR . $REQUEST_PATH);
+//error_log($DST);
+
+$SIZE = getImageSizeFromName($DST);
+//error_log($SIZE);
+
+$SRC = getBaseImagePath($DST);
+//error_log($SRC);
 
 if (!file_exists($SRC))
 {
@@ -106,16 +95,21 @@ if (!file_exists($SRC))
     die();
 }
 
-$SIZE = getImageSizeFromName($VIRTUAL);
-
-$DST = scaleImage($SRC, $SIZE['width'], $SIZE['height']);
-
-if (!file_exists($DST))
+if (file_exists($DST) && filemtime($DST) > filemtime($SRC))
 {
-    http_response_code(508);
-    die();
+    sendImage($DST);
 }
 
-header('Content-Size: ' . filesize($DST));
-header('Content-Type: image');
-readfile($DST);
+$image = new \Imagick($SRC);
+$image->scaleImage($SIZE['width'], $SIZE['height']);
+
+if (is_writable(dirname($DST)))
+{
+    $image->writeImage($DST);
+    $image->clear();
+    sendImage($DST);
+}
+else
+{
+    sendImagick($image);
+}
