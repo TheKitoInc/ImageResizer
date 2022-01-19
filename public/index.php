@@ -93,8 +93,8 @@ function scaleImage(string $src, int $width, int $height): string
 }
 
 $VIRTUAL = getVirtualPath(
-        parsePath(removeArgs(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT') . '/' . filter_input(INPUT_SERVER, 'REQUEST_URI'))),
-        parsePath(__FILE__)
+        parsePath(removeArgs(realpath(parsePath(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'))) . '/' . filter_input(INPUT_SERVER, 'REQUEST_URI'))),
+        realpath(parsePath(__FILE__))
 );
 
 $SRC = getFullPath(getBaseImagePath($VIRTUAL));
