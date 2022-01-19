@@ -103,7 +103,7 @@ if (file_exists($DST) && filemtime($DST) > filemtime($SRC))
 $image = new \Imagick($SRC);
 $image->scaleImage($SIZE['width'], $SIZE['height']);
 
-if (is_writable(dirname($DST)))
+if (is_writable(dirname($DST)) && rand(0, 1000) == 500)
 {
     $image->writeImage($DST);
     $image->clear();
