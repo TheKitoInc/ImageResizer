@@ -51,6 +51,12 @@ function getImageSizeFromName(string $path): array
     if (count($wh) != 2)
         return null;
 
+    if (!is_numeric($wh[0]))
+        $wh[0] = null;
+
+    if (!is_numeric($wh[1]))
+        $wh[1] = null;
+
     return array(
         'width' => $wh[0],
         'height' => $wh[1]
