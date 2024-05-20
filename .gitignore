@@ -1,2 +1,7 @@
 /nbproject/private/
-/trash/
+/trash/log
+tmp
+.php-cs-fixer.cache
+node_modules
+/log
+log
