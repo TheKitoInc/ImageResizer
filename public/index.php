@@ -11,16 +11,16 @@ function removeArgs(string $path): string
 function parsePath(string $path): string
 {
     $elements = array();
-    foreach (explode(DIRECTORY_SEPARATOR, str_replace("\\", DIRECTORY_SEPARATOR, str_replace('/', DIRECTORY_SEPARATOR, $path))) as $element)
-    {
-        if (empty($element))
+    foreach (explode(DIRECTORY_SEPARATOR, str_replace("\\", DIRECTORY_SEPARATOR, str_replace('/', DIRECTORY_SEPARATOR, $path))) as $element) {
+        if (empty($element)) {
             continue;
-        else if ($element == '.')
+        } elseif ($element == '.') {
             continue;
-        else if ($element == '..')        
+        } elseif ($element == '..') {
             array_pop($elements);
-        else
+        } else {
             $elements[] = $element;
+        }
     }
 
     return implode(DIRECTORY_SEPARATOR, $elements);
@@ -31,7 +31,7 @@ function getBaseImagePath(string $path): string
     $name = explode('-', pathinfo($path, PATHINFO_FILENAME), 2);
 
     return parsePath(
-            pathinfo($path, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR .
+        pathinfo($path, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR .
             $name[0] . '.' .
             pathinfo($path, PATHINFO_EXTENSION)
     );
@@ -41,19 +41,23 @@ function getImageSizeFromName(string $path): array
 {
     $name = explode('-', pathinfo($path, PATHINFO_FILENAME), 2);
 
-    if (count($name) != 2)
+    if (count($name) != 2) {
         return null;
+    }
 
     $wh = explode('x', strtolower($name[1]), 2);
 
-    if (count($wh) != 2)
+    if (count($wh) != 2) {
         return null;
+    }
 
-    if (!is_numeric($wh[0]))
+    if (!is_numeric($wh[0])) {
         $wh[0] = null;
+    }
 
-    if (!is_numeric($wh[1]))
+    if (!is_numeric($wh[1])) {
         $wh[1] = null;
+    }
 
     return array(
         'width' => $wh[0],
@@ -93,27 +97,22 @@ $SIZE = getImageSizeFromName($DST);
 $SRC = getBaseImagePath($DST);
 //error_log($SRC);
 
-if (!file_exists($SRC))
-{
+if (!file_exists($SRC)) {
     http_response_code(404);
     die();
 }
 
-if (file_exists($DST) && filemtime($DST) > filemtime($SRC))
-{
+if (file_exists($DST) && filemtime($DST) > filemtime($SRC)) {
     sendImage($DST);
 }
 
 $image = new \Imagick($SRC);
 $image->scaleImage($SIZE['width'], $SIZE['height']);
 
-if (rand(0, 1000) == 500 && is_writable(dirname($DST)))
-{
+if (rand(0, 1000) == 500 && is_writable(dirname($DST))) {
     $image->writeImage($DST);
     $image->clear();
     sendImage($DST);
-}
-else
-{
+} else {
     sendImagick($image);
 }
